@@ -1,8 +1,11 @@
 package com.mjr.library.graphics;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -12,6 +15,9 @@ public class DrawManager2D {
 	private static SpriteBatch batch = new SpriteBatch();
 	private static ShapeRenderer shape = new ShapeRenderer();
 	private static OrthographicCamera camera;
+	private static BitmapFont font = new BitmapFont(
+			Gdx.files.internal("fonts/rust.fnt"),
+			Gdx.files.internal("fonts/rust.png"), false);
 
 	public DrawManager2D() {
 		camera = new OrthographicCamera();
@@ -52,6 +58,22 @@ public class DrawManager2D {
 		batch.begin();
 		batch.draw(new TextureRegion(texture), x, y, ooffx, ooffy,
 				texture.getWidth(), texture.getHeight(), 1, 1, deg);
+		batch.end();
+	}
+
+	public static void drawString(float x, float y, String str, float scale,
+			Color color, boolean center) {
+		batch.begin();
+		font.getData().setScale(scale);
+		font.setColor(color);
+		GlyphLayout layout = new GlyphLayout(font, str);
+		float textX = x;
+		float textY = y;
+		if (center) {
+			textX = x - (layout.width / 2);
+			textY = y + (layout.height / 2);
+		}
+		font.draw(batch, layout, textX, textY);
 		batch.end();
 	}
 
@@ -107,7 +129,7 @@ public class DrawManager2D {
 		shape.line(x, y, x2, y2);
 		shape.end();
 	}
-	
+
 	public static void dispose() {
 		batch.dispose();
 	}
