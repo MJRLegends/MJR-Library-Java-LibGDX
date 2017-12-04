@@ -24,6 +24,7 @@ public class NetworkUser {
 		this.ipAddress = ipAddress;
 	}
 	
+	@Override
 	public String toString(){
 		return "User:" + userName + "IP:" + ipAddress;
 	}

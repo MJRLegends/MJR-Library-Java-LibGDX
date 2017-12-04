@@ -28,6 +28,7 @@ public abstract class Packet {
 		this.body = body;
 	}
 
+	@Override
 	public String toString() {
 		return this.header + "/" + this.body;
 	}
