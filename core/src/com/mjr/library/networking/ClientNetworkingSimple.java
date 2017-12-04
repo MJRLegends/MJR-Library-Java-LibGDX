@@ -20,6 +20,7 @@ import com.badlogic.gdx.net.ServerSocketHints;
 import com.badlogic.gdx.net.Socket;
 import com.badlogic.gdx.net.SocketHints;
 import com.mjr.library.networking.packets.Packet;
+import com.mjr.library.networking.packets.server.ServerPingPongResponse;
 
 public abstract class ClientNetworkingSimple implements ApplicationListener {
 
@@ -90,17 +91,26 @@ public abstract class ClientNetworkingSimple implements ApplicationListener {
 
 					try {
 						String readLine = buffer.readLine();
+						if (readLine != "")
+							System.out.println("Client: " + readLine);
 						if (readLine.length() != 0 && readLine.substring(0, 6).equalsIgnoreCase("Client")) {
-							switch (readLine.substring(6, readLine.indexOf("/"))) {
+							switch (readLine.substring(7, readLine.indexOf("/"))) {
 							case "Login":
 								if (readLine.contains("Success"))
 									setConnected(true);
 								else
 									setConnected(false);
 								break;
+							case "PingPong":
+								String ip = readLine.substring(readLine.indexOf("IP:") + 3);
+								sendPacket(new ServerPingPongResponse("Success"), ip);
+								break;
+							default:
+								onPacketHandle(readLine);
+								break;
+
 							}
 						}
-						onPacketHandle(buffer.readLine());
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
@@ -135,15 +145,19 @@ public abstract class ClientNetworkingSimple implements ApplicationListener {
 	}
 
 	public void sendPacket(Packet packet, String serverIPAddress) {
-		SocketHints socketHints = new SocketHints();
-		socketHints.connectTimeout = 4000;
-		Socket socket = Gdx.net.newClientSocket(Protocol.TCP, serverIPAddress, getServerPort(), socketHints);
 		try {
-			socket.getOutputStream().write(packet.toString().getBytes());
-		} catch (IOException e) {
-			System.out.println(e.getMessage());
+			SocketHints socketHints = new SocketHints();
+			socketHints.connectTimeout = 4000;
+			Socket socket = Gdx.net.newClientSocket(Protocol.TCP, serverIPAddress, getServerPort(), socketHints);
+			try {
+				socket.getOutputStream().write(packet.toString().getBytes());
+			} catch (IOException e) {
+				System.out.println(e.getMessage());
+			}
+			socket.dispose();
+		} catch (Exception e) {
+
 		}
-		socket.dispose();
 	}
 
 	protected abstract void onPacketHandle(String readLine);

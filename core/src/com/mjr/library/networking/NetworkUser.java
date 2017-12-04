@@ -4,6 +4,7 @@ public class NetworkUser {
 
 	public String userName = "";
 	public String ipAddress = "";
+	public long timeSinceLastPing = 0;
 	
 	public NetworkUser(String userName, String ipAddress){
 		this.userName = userName;
@@ -23,4 +24,15 @@ public class NetworkUser {
 		this.ipAddress = ipAddress;
 	}
 	
+	public String toString(){
+		return "User:" + userName + "IP:" + ipAddress;
+	}
+
+	public long getTimeSinceLastPing() {
+		return timeSinceLastPing;
+	}
+
+	public void setTimeSinceLastPing(long timeSinceLastPing) {
+		this.timeSinceLastPing = timeSinceLastPing;
+	}
 }
