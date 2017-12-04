@@ -2,6 +2,8 @@ package com.mjr.library.networking.packets;
 
 public abstract class Packet {
 
+	// Format: Client/Server:Type/Data
+	
 	private String header;
 	private String body;
 
@@ -29,6 +31,4 @@ public abstract class Packet {
 	public String toString() {
 		return this.header + "/" + this.body;
 	}
-	
-	public abstract void handlePacket(String data);
 }

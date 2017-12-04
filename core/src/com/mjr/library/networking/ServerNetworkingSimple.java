@@ -20,8 +20,11 @@ import com.badlogic.gdx.net.ServerSocketHints;
 import com.badlogic.gdx.net.Socket;
 import com.badlogic.gdx.net.SocketHints;
 import com.mjr.library.networking.packets.Packet;
+import com.mjr.library.networking.packets.client.ClientLoginPacketResponse;
 
 public abstract class ServerNetworkingSimple implements ApplicationListener {
+
+	private ServerManager serverManager;
 
 	private int port = 0;
 	private int clientPort = 0;
@@ -29,6 +32,7 @@ public abstract class ServerNetworkingSimple implements ApplicationListener {
 	public ServerNetworkingSimple(int port, int clientPort) {
 		this.port = port;
 		this.clientPort = clientPort;
+		setServerManager(new ServerManager());
 	}
 
 	public int getPort() {
@@ -50,11 +54,9 @@ public abstract class ServerNetworkingSimple implements ApplicationListener {
 	public List<String> getIpAddresses() {
 		List<String> addresses = new ArrayList<String>();
 		try {
-			Enumeration<NetworkInterface> interfaces = NetworkInterface
-					.getNetworkInterfaces();
+			Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
 			for (NetworkInterface ni : Collections.list(interfaces)) {
-				for (InetAddress address : Collections.list(ni
-						.getInetAddresses())) {
+				for (InetAddress address : Collections.list(ni.getInetAddresses())) {
 					if (address instanceof Inet4Address) {
 						addresses.add(address.getHostAddress());
 					}
@@ -66,6 +68,14 @@ public abstract class ServerNetworkingSimple implements ApplicationListener {
 		return addresses;
 	}
 
+	public ServerManager getServerManager() {
+		return serverManager;
+	}
+
+	public void setServerManager(ServerManager serverManager) {
+		this.serverManager = serverManager;
+	}
+
 	@Override
 	public void create() {
 		new Thread(new Runnable() {
@@ -74,16 +84,30 @@ public abstract class ServerNetworkingSimple implements ApplicationListener {
 				ServerSocketHints serverSocketHint = new ServerSocketHints();
 				serverSocketHint.acceptTimeout = 0;
 
-				ServerSocket serverSocket = Gdx.net.newServerSocket(
-						Protocol.TCP, getPort(), serverSocketHint);
+				ServerSocket serverSocket = Gdx.net.newServerSocket(Protocol.TCP, getPort(), serverSocketHint);
 
 				while (true) {
 					Socket socket = serverSocket.accept(null);
-					BufferedReader buffer = new BufferedReader(
-							new InputStreamReader(socket.getInputStream()));
+					BufferedReader buffer = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
 					try {
-						onPacketHandle(buffer.readLine());
+						String readLine = buffer.readLine();
+						if (readLine.length() != 0 && readLine.substring(0, 6).equalsIgnoreCase("Server")) {
+							String packetData = readLine.substring(7, readLine.indexOf("/"));
+							switch (packetData) {
+							case "Login":
+								String userName = readLine.substring(readLine.indexOf("User:") + 5);
+								userName.substring(0, userName.indexOf("IP:"));
+								String ipAddress = readLine.substring(readLine.indexOf("IP:") + 3);
+
+								getServerManager().addUsers(new NetworkUser(userName, ipAddress));
+								sendPacket(new ClientLoginPacketResponse("Success"), ipAddress);
+								break;
+							default:
+								onPacketHandle(readLine);
+								break;
+							}
+						}
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
@@ -120,8 +144,7 @@ public abstract class ServerNetworkingSimple implements ApplicationListener {
 	public void sendPacket(Packet packet, String clientIPAddress) {
 		SocketHints socketHints = new SocketHints();
 		socketHints.connectTimeout = 4000;
-		Socket socket = Gdx.net.newClientSocket(Protocol.TCP, clientIPAddress,
-				getClientPort(), socketHints);
+		Socket socket = Gdx.net.newClientSocket(Protocol.TCP, clientIPAddress, getClientPort(), socketHints);
 		try {
 			socket.getOutputStream().write(packet.toString().getBytes());
 		} catch (IOException e) {

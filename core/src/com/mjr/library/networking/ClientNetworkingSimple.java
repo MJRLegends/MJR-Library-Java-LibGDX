@@ -23,6 +23,7 @@ import com.mjr.library.networking.packets.Packet;
 
 public abstract class ClientNetworkingSimple implements ApplicationListener {
 
+	private boolean connected = false;
 	private int port = 0;
 	private int serverPort = 0;
 
@@ -50,11 +51,9 @@ public abstract class ClientNetworkingSimple implements ApplicationListener {
 	public List<String> getIpAddresses() {
 		List<String> addresses = new ArrayList<String>();
 		try {
-			Enumeration<NetworkInterface> interfaces = NetworkInterface
-					.getNetworkInterfaces();
+			Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
 			for (NetworkInterface ni : Collections.list(interfaces)) {
-				for (InetAddress address : Collections.list(ni
-						.getInetAddresses())) {
+				for (InetAddress address : Collections.list(ni.getInetAddresses())) {
 					if (address instanceof Inet4Address) {
 						addresses.add(address.getHostAddress());
 					}
@@ -66,6 +65,14 @@ public abstract class ClientNetworkingSimple implements ApplicationListener {
 		return addresses;
 	}
 
+	public boolean isConnected() {
+		return connected;
+	}
+
+	public void setConnected(boolean connected) {
+		this.connected = connected;
+	}
+
 	@Override
 	public void create() {
 
@@ -75,15 +82,24 @@ public abstract class ClientNetworkingSimple implements ApplicationListener {
 				ServerSocketHints serverSocketHint = new ServerSocketHints();
 				serverSocketHint.acceptTimeout = 0;
 
-				ServerSocket serverSocket = Gdx.net.newServerSocket(
-						Protocol.TCP, getPort(), serverSocketHint);
+				ServerSocket serverSocket = Gdx.net.newServerSocket(Protocol.TCP, getPort(), serverSocketHint);
 
 				while (true) {
 					Socket socket = serverSocket.accept(null);
-					BufferedReader buffer = new BufferedReader(
-							new InputStreamReader(socket.getInputStream()));
+					BufferedReader buffer = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
 					try {
+						String readLine = buffer.readLine();
+						if (readLine.length() != 0 && readLine.substring(0, 6).equalsIgnoreCase("Client")) {
+							switch (readLine.substring(6, readLine.indexOf("/"))) {
+							case "Login":
+								if (readLine.contains("Success"))
+									setConnected(true);
+								else
+									setConnected(false);
+								break;
+							}
+						}
 						onPacketHandle(buffer.readLine());
 					} catch (IOException e) {
 						e.printStackTrace();
@@ -121,8 +137,7 @@ public abstract class ClientNetworkingSimple implements ApplicationListener {
 	public void sendPacket(Packet packet, String serverIPAddress) {
 		SocketHints socketHints = new SocketHints();
 		socketHints.connectTimeout = 4000;
-		Socket socket = Gdx.net.newClientSocket(Protocol.TCP, serverIPAddress,
-				getServerPort(), socketHints);
+		Socket socket = Gdx.net.newClientSocket(Protocol.TCP, serverIPAddress, getServerPort(), socketHints);
 		try {
 			socket.getOutputStream().write(packet.toString().getBytes());
 		} catch (IOException e) {
